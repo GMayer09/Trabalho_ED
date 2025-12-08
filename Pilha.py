@@ -37,35 +37,28 @@ class Pilha:
             raise ValueError("Pilha vazia")
 
 def main():
-    if len(sys.argv) < 2:
-        print('Nenhum nome de arquivo informado.') 
-        sys.exit(1)
-
-    if len(sys.argv) > 2:
-        print('Muitos parâmetros. Informe apenas um nome de arquivo.') 
+    if len(sys.argv) != 2:
+        print("Uso: python Pilha.py arquivo.txt")
         sys.exit(1)
 
     nome_arquivo = sys.argv[1]
-    
-    linhas_do_arquivo = lerArquivo(nome_arquivo) 
-    
-    dados_brutos = ""
-    for linha in linhas_do_arquivo:
-        dados_brutos += linha
-    
-    dados_formatados = remover_espacos_e_newlines(dados_brutos)
-    
-    tokens = dividir_por_delimitador(dados_formatados, '.')
+    linhas = lerArquivo(nome_arquivo)
 
-    if not tokens:
-        print("O arquivo está vazio ou não contém tokens válidos.")
-        return
+    i = 0
+    while i < len(linhas):
+        linha = linhas[i]
+        linha_limpa = remover_espacos_e_newlines(linha)
 
-    try:
-        resultado = notacaoPolonesa(tokens)
-        print(f"Resultado final da expressão: {resultado}")
-    except Exception as e:
-        print(f"\nErro durante o cálculo da expressão: {e}")
+        if linha_limpa != "":
+            tokens = dividir_por_delimitador(linha_limpa, '.')
+            try:
+                resultado = notacaoPolonesa(tokens)
+                print("Resultado da linha", i + 1, ":", resultado)
+            except Exception as e:
+                print("Erro na linha", i + 1, ":", e)
+
+        i += 1
+
 
 def remover_espacos_e_newlines(s: str) -> str:
     inicio = 0
@@ -82,18 +75,30 @@ def remover_espacos_e_newlines(s: str) -> str:
 def dividir_por_delimitador(s: str, delimitador: str) -> list[str]:
     tokens = []
     current_token = ""
-    
-    for char in s:
+
+    i = 0
+    while i < len(s):
+        char = s[i]
+
         if char == delimitador:
-            if current_token:
+            if current_token != "":
                 tokens.append(current_token)
+                current_token = ""
+            i += 1
+            continue
+
+        # Se o caractere atual é dígito E o token atual é operador,
+        # comece um novo token automaticamente
+        if char.isdigit() and (current_token in ["+", "-", "*", "/"]):
+            tokens.append(current_token)
             current_token = ""
-        else:
-            current_token += char
-    
-    if current_token:
+
+        current_token += char
+        i += 1
+
+    if current_token != "":
         tokens.append(current_token)
-        
+
     return tokens
 
 def lerArquivo(nome: str) -> str:
@@ -125,27 +130,35 @@ def notacaoPolonesa(tokens: list[str]):
     for token in tokens:
         token_limpo = remover_espacos_e_newlines(token)
 
-        match token:
-            case t if t.ehNumero():
+        match token_limpo:
+            case t if ehNumero(t):
                 pilha.Empilhar(int(t))
             case '+':
                 pilha.Empilhar(pilha.Desempilhar() + pilha.Desempilhar())
             case '-':
-                pilha.Empilhar(pilha.Desempilhar() - pilha.Desempilhar())
+                b = pilha.Desempilhar()
+                a = pilha.Desempilhar()
+                pilha.Empilhar(a - b)
             case '*':
                 pilha.Empilhar(pilha.Desempilhar() * pilha.Desempilhar())
             case '/':
-                pilha.Empilhar(pilha.Desempilhar() / pilha.Desempilhar())
+                b = pilha.Desempilhar()
+                a = pilha.Desempilhar()
+                pilha.Empilhar(a / b)
             case _:
-                print(f"Token inválido: {token}")
-    try:
-        resultado_final = pilha.MostrarTopo()
-        pilha.Desempilhar()
-        if not pilha.PilhaVazia():
-            print("AVISO: A pilha final tem mais de um elemento. Expressão incompleta.")
-        return resultado_final
-    except (ValueError, IndexError):
-        return "Erro: Expressão não resultou em valor final."
+                print(f"Token inválido: {token_limpo}")
+
+    if pilha.PilhaVazia():
+        raise ValueError("Expressão vazia ou não resultou em valor final.")
+
+    resultado_final = pilha.MostrarTopo()
+    pilha.Desempilhar()
+
+    if not pilha.PilhaVazia():
+        sobrando = pilha.topo + 1
+        raise ValueError("Expressão incompleta: sobraram {} valor(es) na pilha.".format(sobrando))
+
+    return resultado_final
 
     
 if __name__ == "__main__":
