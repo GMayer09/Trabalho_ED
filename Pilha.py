@@ -26,12 +26,13 @@ class Pilha:
             valor_removido = self.elementos[self.topo]
             self.elementos[self.topo] = None
             self.topo -= 1
+            return valor_removido
         else:
             print("Pilha vazia")
     
     def MostrarTopo(self):
         if not self.PilhaVazia():
-            print(self.elementos[self.topo])
+            return self.elementos[self.topo]
         else:
             raise ValueError("Pilha vazia")
 
@@ -41,36 +42,59 @@ def main():
         sys.exit(1)
 
     if len(sys.argv) > 2:
-        print('Muitos parâmetro. Informe apenas um nome de arquivo.') 
+        print('Muitos parâmetros. Informe apenas um nome de arquivo.') 
         sys.exit(1)
 
-    pilha = Pilha()
-    opcao: str = ""
+    nome_arquivo = sys.argv[1]
+    
+    linhas_do_arquivo = lerArquivo(nome_arquivo) 
+    
+    dados_brutos = ""
+    for linha in linhas_do_arquivo:
+        dados_brutos += linha
+    
+    dados_formatados = remover_espacos_e_newlines(dados_brutos)
+    
+    tokens = dividir_por_delimitador(dados_formatados, '.')
+
+    if not tokens:
+        print("O arquivo está vazio ou não contém tokens válidos.")
+        return
+
     try:
-        print("Iniciando programa!")
-        while opcao != "s":
-            print("\n--- Menu ---")
-            print("e - Empilhar")
-            print("d - Desempilhar")
-            print("m - Mostrar topo")
-            print("s - Sair")
-            opcao = input("Escolha uma opção: ").lower()
-            match opcao:
-                case "e":
-                    valor = int(input("Digite o valor a ser empilhado: "))
-                    pilha.Empilhar(valor)
-                case "d":
-                    pilha.Desempilhar()
-                case "m":
-                    pilha.MostrarTopo()
-                case "s":
-                    break
-    except ValueError as e:
-        print("\nErro de valor: {e}")
+        resultado = notacaoPolonesa(tokens)
+        print(f"Resultado final da expressão: {resultado}")
     except Exception as e:
-        print("\nErro inesperado: {e}")
-    finally:
-        print("Programa finalizado!")
+        print(f"\nErro durante o cálculo da expressão: {e}")
+
+def remover_espacos_e_newlines(s: str) -> str:
+    inicio = 0
+    fim = len(s)
+    
+    while inicio < fim and (s[inicio] == ' ' or s[inicio] == '\n' or s[inicio] == '\r'):
+        inicio += 1
+    
+    while fim > inicio and (s[fim - 1] == ' ' or s[fim - 1] == '\n' or s[fim - 1] == '\r'):
+        fim -= 1
+        
+    return s[inicio:fim]
+
+def dividir_por_delimitador(s: str, delimitador: str) -> list[str]:
+    tokens = []
+    current_token = ""
+    
+    for char in s:
+        if char == delimitador:
+            if current_token:
+                tokens.append(current_token)
+            current_token = ""
+        else:
+            current_token += char
+    
+    if current_token:
+        tokens.append(current_token)
+        
+    return tokens
 
 def lerArquivo(nome: str) -> str:
     try:
@@ -96,9 +120,11 @@ def ehNumero(s: str) -> bool:
     return True
 
 
-def notacaoPolonesa(arquivo: list[str]):
+def notacaoPolonesa(tokens: list[str]):
     pilha = Pilha()
-    for token in arquivo:
+    for token in tokens:
+        token_limpo = remover_espacos_e_newlines(token)
+
         match token:
             case t if t.ehNumero():
                 pilha.Empilhar(int(t))
@@ -113,10 +139,13 @@ def notacaoPolonesa(arquivo: list[str]):
             case _:
                 print(f"Token inválido: {token}")
     try:
-        resultado = pilha.elementos[pilha.topo]
-        print(f"Resultado da expressão: {resultado}")
-    except Exception as e:
-        print(f"Erro ao obter o resultado final: {e}")
+        resultado_final = pilha.MostrarTopo()
+        pilha.Desempilhar()
+        if not pilha.PilhaVazia():
+            print("AVISO: A pilha final tem mais de um elemento. Expressão incompleta.")
+        return resultado_final
+    except (ValueError, IndexError):
+        return "Erro: Expressão não resultou em valor final."
 
     
 if __name__ == "__main__":
