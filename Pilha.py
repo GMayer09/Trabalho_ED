@@ -50,13 +50,12 @@ def main():
         linha_limpa = remover_espacos_e_newlines(linha)
 
         if linha_limpa != "":
-            tokens = dividir_por_delimitador(linha_limpa, '.')
             try:
+                tokens = dividir_por_delimitador(linha_limpa, '.')
                 resultado = notacaoPolonesa(tokens)
                 print("Resultado da linha", i + 1, ":", resultado)
             except Exception as e:
                 print("Erro na linha", i + 1, ":", e)
-
         i += 1
 
 
@@ -80,26 +79,33 @@ def dividir_por_delimitador(s: str, delimitador: str) -> list[str]:
     while i < len(s):
         char = s[i]
 
-        if char == delimitador:
+        if char.isdigit():
+            current_token += char
+            i += 1
+            continue
+
+        if char == '.':
             if current_token != "":
                 tokens.append(current_token)
                 current_token = ""
             i += 1
             continue
 
-        # Se o caractere atual é dígito E o token atual é operador,
-        # comece um novo token automaticamente
-        if char.isdigit() and (current_token in ["+", "-", "*", "/"]):
-            tokens.append(current_token)
-            current_token = ""
+        if char in "+-*/":
+            if current_token != "":
+                tokens.append(current_token)
+                current_token = ""
+            tokens.append(char)
+            i += 1
+            continue
 
-        current_token += char
-        i += 1
+        raise ValueError(f"Caractere inválido: {char}")
 
     if current_token != "":
         tokens.append(current_token)
 
     return tokens
+
 
 def lerArquivo(nome: str) -> str:
     try:
@@ -127,36 +133,43 @@ def ehNumero(s: str) -> bool:
 
 def notacaoPolonesa(tokens: list[str]):
     pilha = Pilha()
+    operadores = {"+", "-", "*", "/"}
+
     for token in tokens:
         token_limpo = remover_espacos_e_newlines(token)
 
-        match token_limpo:
-            case t if ehNumero(t):
-                pilha.Empilhar(int(t))
-            case '+':
-                pilha.Empilhar(pilha.Desempilhar() + pilha.Desempilhar())
-            case '-':
-                b = pilha.Desempilhar()
-                a = pilha.Desempilhar()
-                pilha.Empilhar(a - b)
-            case '*':
-                pilha.Empilhar(pilha.Desempilhar() * pilha.Desempilhar())
-            case '/':
-                b = pilha.Desempilhar()
-                a = pilha.Desempilhar()
-                pilha.Empilhar(a / b)
-            case _:
-                print(f"Token inválido: {token_limpo}")
+        if ehNumero(token_limpo):
+            pilha.Empilhar(int(token_limpo))
+            continue
+
+        if token_limpo in operadores:
+            if pilha.topo < 1:
+                raise ValueError("Erro: faltando operando na expressão.")
+
+            b = pilha.Desempilhar()
+            a = pilha.Desempilhar()
+
+            match token_limpo:
+                case '+':
+                    pilha.Empilhar(a + b)
+                case '-':
+                    pilha.Empilhar(a - b)
+                case '*':
+                    pilha.Empilhar(a * b)
+                case '/':
+                    pilha.Empilhar(a / b)
+
+            continue
+
+        raise ValueError(f"Token inválido: {token_limpo}")
 
     if pilha.PilhaVazia():
-        raise ValueError("Expressão vazia ou não resultou em valor final.")
+        raise ValueError("Erro: expressão vazia ou inválida.")
 
-    resultado_final = pilha.MostrarTopo()
-    pilha.Desempilhar()
+    resultado_final = pilha.Desempilhar()
 
     if not pilha.PilhaVazia():
-        sobrando = pilha.topo + 1
-        raise ValueError("Expressão incompleta: sobraram {} valor(es) na pilha.".format(sobrando))
+        raise ValueError("Erro: faltando operador na expressão.")
 
     return resultado_final
 
