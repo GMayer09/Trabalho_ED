@@ -1,3 +1,6 @@
+# Trabalho Estrutura de Dados - Franklin Cesar Flores
+# Raul Alencar (145090) e Guilherme Mayer (140656)
+
 from sys import argv
 import sys
 
