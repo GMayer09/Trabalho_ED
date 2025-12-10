@@ -160,7 +160,9 @@ def notacaoPolonesa(tokens: list[str]):
                 case '*':
                     pilha.Empilhar(a * b)
                 case '/':
-                    pilha.Empilhar(a / b)
+                    if b == 0:
+                        raise ValueError("Divisão por zero.")
+                    pilha.Empilhar(a // b)
 
             continue
 
